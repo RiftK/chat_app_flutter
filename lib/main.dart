@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:bubble/bubble.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:freezed/builder.dart';
 
 void main() => runApp(MyApp());
 
@@ -65,9 +66,7 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
               icon: Icon(Icons.send),
               onPressed: () {
-                setState(() {
-                  _handleSubmitted(_textController.text);
-                });
+                _handleSubmitted(_textController.text);
               }),
         ],
       ),
