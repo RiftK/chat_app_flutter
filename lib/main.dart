@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:bubble/bubble.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:freezed/builder.dart';
+
+import 'bloc/chat_bloc.dart';
 
 void main() => runApp(MyApp());
 
@@ -15,7 +16,10 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.green,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: ChatScreen(),
+      home: BlocProvider(
+        create: (context) => ChatBloc(),
+        child: ChatScreen(),
+      ),
     );
   }
 }
@@ -40,33 +44,30 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   int user = 0;
   String chatWith = "Vegeta";
-  String pfp =
-      "https://i.pinimg.com/736x/6b/bb/80/6bbb802fe57d9bccbe24dece69e87ab0.jpg";
-
-  void _handleSubmitted(String text) {
-    _textController.clear();
-    if (text == "") return;
-    setState(() {
-      messages.add(Message(text, chatWith, user));
-    });
-  }
+  String pfp = 'images/vegeta.jpg';
 
   Widget _buildTextComposer() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 8.0),
+      margin: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
         children: [
           Flexible(
             child: TextField(
               controller: _textController,
-              onSubmitted: _handleSubmitted,
-              decoration: InputDecoration.collapsed(hintText: 'Message'),
+              decoration: const InputDecoration.collapsed(hintText: 'Message'),
             ),
           ),
           IconButton(
-              icon: Icon(Icons.send),
+              icon: const Icon(Icons.send),
               onPressed: () {
-                _handleSubmitted(_textController.text);
+                String text = _textController.text;
+                ChatBloc bloc = BlocProvider.of<ChatBloc>(context);
+                String name = user == 0 ? "Goku" : "Vegeta";
+                Message msg = Message(text, name, user);
+                if (text.isNotEmpty) {
+                  bloc.add(NewMessageEvent(message: msg));
+                }
+                _textController.clear();
               }),
         ],
       ),
@@ -79,28 +80,23 @@ class _ChatScreenState extends State<ChatScreen> {
     return Align(
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Bubble(
-        margin: BubbleEdges.only(top: 10),
+        margin: const BubbleEdges.only(top: 10),
         padding: isCurrentUser
-            ? BubbleEdges.only(left: 20)
-            : BubbleEdges.only(right: 20),
+            ? const BubbleEdges.only(left: 20)
+            : const BubbleEdges.only(right: 20),
         alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
         nip: isCurrentUser ? BubbleNip.rightBottom : BubbleNip.leftBottom,
         color: isCurrentUser
-            ? Color.fromRGBO(225, 255, 199, 1.0)
+            ? const Color.fromRGBO(225, 255, 199, 1.0)
             : Colors.grey[300],
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // if (!isCurrentUser)
-            //   Text(
-            //     message.userName,
-            //     style: TextStyle(fontWeight: FontWeight.bold),
-            //   ),
             Text(message.text),
-            SizedBox(height: 4.0),
+            const SizedBox(height: 4.0),
             Text(
               '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
-              style: TextStyle(fontSize: 12.0),
+              style: const TextStyle(fontSize: 12.0),
             ),
           ],
         ),
@@ -113,29 +109,43 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       backgroundColor: Colors.blue[50],
       appBar: AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: CircleAvatar(
-            radius: 10,
-            foregroundImage: NetworkImage(pfp),
-          ),
+        leading: BlocBuilder<ChatBloc, ChatState>(
+          builder: (context, state) {
+            if (state is UserSwapped) {
+              if (user == 1) {
+                pfp = "images/goku.jpg";
+              } else {
+                pfp = "images/vegeta.jpg";
+              }
+              ChatBloc bloc = BlocProvider.of<ChatBloc>(context);
+              bloc.add(DoneUpdating());
+            }
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CircleAvatar(
+                radius: 10,
+                foregroundImage: AssetImage(pfp),
+              ),
+            );
+          },
         ),
-        title: Text(chatWith),
+        title: BlocBuilder<ChatBloc, ChatState>(
+          builder: (context, state) {
+            if (state is UserSwapped) {
+              if (user == 1) {
+                chatWith = "Goku";
+              } else {
+                chatWith = "Vegeta";
+              }
+            }
+            return Text(chatWith);
+          },
+        ),
         actions: [
           IconButton(
               onPressed: () {
-                setState(() {
-                  user = 1 - user;
-                  if (user == 1) {
-                    chatWith = "Goku";
-                    pfp =
-                        "https://i.pinimg.com/564x/e7/68/46/e76846ec30e1c9a1b804499e2368ac6b.jpg";
-                  } else {
-                    chatWith = "Vegeta";
-                    pfp =
-                        "https://i.pinimg.com/736x/6b/bb/80/6bbb802fe57d9bccbe24dece69e87ab0.jpg";
-                  }
-                });
+                ChatBloc bloc = BlocProvider.of<ChatBloc>(context);
+                bloc.add(ChangeUserEvent());
               },
               icon: Icon(user == 0 ? Icons.person : Icons.swap_horiz))
         ],
@@ -143,11 +153,26 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Flexible(
-            child: ListView.builder(
-              padding: EdgeInsets.all(8.0),
-              reverse: false,
-              itemBuilder: (_, int index) => _buildMessageItem(messages[index]),
-              itemCount: messages.length,
+            child: BlocBuilder<ChatBloc, ChatState>(
+              builder: (context, state) {
+                if (state is MessagesUpdated) {
+                  messages.add(state.latestMessage);
+                  ChatBloc bloc = BlocProvider.of<ChatBloc>(context);
+                  bloc.add(DoneUpdating());
+                }
+                if (state is UserSwapped) {
+                  user = 1 - user;
+                  ChatBloc bloc = BlocProvider.of<ChatBloc>(context);
+                  bloc.add(DoneUpdating());
+                }
+                return ListView.builder(
+                  padding: EdgeInsets.all(8.0),
+                  reverse: false,
+                  itemBuilder: (_, int index) =>
+                      _buildMessageItem(messages[index]),
+                  itemCount: messages.length,
+                );
+              },
             ),
           ),
           Divider(height: 1.0),
