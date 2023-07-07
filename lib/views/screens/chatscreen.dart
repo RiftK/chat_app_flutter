@@ -113,9 +113,10 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 if (message.repliedToMessage != null) ...[
                   Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.greenAccent),
-                      color: const Color.fromARGB(255, 156, 255, 161),
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      // border: Border.all(color: Colors.greenAccent),
+                      color: Color.fromARGB(255, 180, 248, 183),
                     ),
                     child: Text((message.repliedToMessage as Message).text),
                   )
@@ -188,17 +189,25 @@ class _ChatScreenState extends State<ChatScreen> {
               itemCount: messages.length,
             ),
           ),
-          if (messageToReply is Message)
-            Container(
-              decoration: const BoxDecoration(color: Colors.lightGreen),
-              child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(width: 20),
-                    Text((messageToReply as Message).text),
-                  ]),
+          if (messageToReply is Message) ...[
+            Row(
+              children: [
+                const SizedBox(width: 20),
+                Container(
+                  height: 30,
+                  decoration: const BoxDecoration(
+                      color: Color.fromARGB(205, 108, 215, 112)),
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        const SizedBox(width: 10),
+                        Text((messageToReply as Message).text),
+                        const SizedBox(width: 20),
+                      ]),
+                ),
+              ],
             ),
+          ],
           const Divider(height: 1.0),
           Container(
             decoration: BoxDecoration(color: Theme.of(context).cardColor),
