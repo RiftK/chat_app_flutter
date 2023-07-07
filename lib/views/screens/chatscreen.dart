@@ -28,6 +28,8 @@ class _ChatScreenState extends State<ChatScreen> {
   late int currentUser;
   late String chatWithName;
   late String pfp;
+  int selectedMessageIndex = -1;
+  Message? messageToReply;
 
   @override
   void initState() {
@@ -55,9 +57,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 String text = _textController.text;
                 ChatBloc bloc = BlocProvider.of<ChatBloc>(context);
                 Message msg = Message(text, currentUser, chatWithID);
+                if (messageToReply is Message) {
+                  msg.repliedToMessage = messageToReply as Message;
+                }
                 if (text.isNotEmpty) {
                   setState(() {
                     messages.add(msg);
+                    messageToReply = null;
                   });
                 }
                 _textController.clear();
@@ -67,35 +73,62 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessageItem(Message message) {
+  Widget _buildMessageItem(int index) {
+    Message message = messages[index];
     bool isCurrentUser = (message.fromUser == currentUser);
 
     if (message.toUser != chatWithID || message.fromUser != currentUser) {
       return const SizedBox.shrink();
     }
 
-    return Align(
-      alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Bubble(
-        margin: const BubbleEdges.only(top: 10),
-        padding: isCurrentUser
-            ? const BubbleEdges.only(left: 20)
-            : const BubbleEdges.only(right: 20),
+    return Container(
+      decoration: index == selectedMessageIndex
+          ? const BoxDecoration(color: Color.fromARGB(153, 131, 245, 190))
+          : const BoxDecoration(),
+      child: Align(
         alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
-        nip: isCurrentUser ? BubbleNip.rightBottom : BubbleNip.leftBottom,
-        color: isCurrentUser
-            ? const Color.fromRGBO(225, 255, 199, 1.0)
-            : Colors.grey[300],
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(message.text),
-            const SizedBox(height: 4.0),
-            Text(
-              '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
-              style: const TextStyle(fontSize: 12.0),
+        child: Bubble(
+          margin: const BubbleEdges.only(top: 10),
+          padding: isCurrentUser
+              ? const BubbleEdges.only(left: 20)
+              : const BubbleEdges.only(right: 20),
+          alignment:
+              isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+          nip: isCurrentUser ? BubbleNip.rightBottom : BubbleNip.leftBottom,
+          color: isCurrentUser
+              ? const Color.fromRGBO(225, 255, 199, 1.0)
+              : Colors.grey[300],
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                if (selectedMessageIndex == index) {
+                  selectedMessageIndex = -1;
+                } else {
+                  selectedMessageIndex = index;
+                }
+              });
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (message.repliedToMessage != null) ...[
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.greenAccent),
+                      color: const Color.fromARGB(255, 156, 255, 161),
+                    ),
+                    child: Text((message.repliedToMessage as Message).text),
+                  )
+                ],
+                Text(message.text),
+                const SizedBox(height: 4.0),
+                Text(
+                  '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
+                  style: const TextStyle(fontSize: 12.0),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -105,34 +138,67 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blue[50],
-      appBar: AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: CircleAvatar(
-            radius: 10,
-            foregroundImage: AssetImage(pfp),
-          ),
-        ),
-        title: Text(users[chatWithID].username),
-        actions: [
-          IconButton(
-            onPressed: () {
-              widget.returnHome();
-            },
-            icon: const Icon(Icons.arrow_back_ios_new),
-          ),
-        ],
-      ),
+      appBar: (selectedMessageIndex == -1)
+          ? AppBar(
+              leading: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  radius: 10,
+                  foregroundImage: AssetImage(pfp),
+                ),
+              ),
+              title: Text(users[chatWithID].username),
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    widget.returnHome();
+                  },
+                  icon: const Icon(Icons.arrow_back_ios_new),
+                ),
+              ],
+            )
+          : AppBar(
+              leading: IconButton(
+                onPressed: () {
+                  setState(() {
+                    selectedMessageIndex = -1;
+                  });
+                },
+                icon: const Icon(Icons.arrow_back),
+              ),
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      messageToReply = messages[selectedMessageIndex];
+                      selectedMessageIndex = -1;
+                    });
+                  },
+                  icon: const Icon(Icons.reply),
+                ),
+              ],
+            ),
       body: Column(
         children: [
           Flexible(
             child: ListView.builder(
               padding: const EdgeInsets.all(8.0),
               reverse: false,
-              itemBuilder: (_, int index) => _buildMessageItem(messages[index]),
+              itemBuilder: (_, int index) => _buildMessageItem(index),
               itemCount: messages.length,
             ),
           ),
+          if (messageToReply is Message)
+            Container(
+              decoration: const BoxDecoration(color: Colors.lightGreen),
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(width: 20),
+                    Text((messageToReply as Message).text),
+                  ]),
+            ),
           const Divider(height: 1.0),
           Container(
             decoration: BoxDecoration(color: Theme.of(context).cardColor),
