@@ -62,7 +62,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 }
                 if (text.isNotEmpty) {
                   setState(() {
-                    messages.add(msg);
+                    // messages.add(msg);
+                    boxMessages.put(boxMessages.length,
+                        msg); // key = index, value = message
                     messageToReply = null;
                   });
                 }
@@ -74,7 +76,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageItem(int index) {
-    Message message = messages[index];
+    Message message = boxMessages.getAt(index);
     bool isCurrentUser = (message.fromUser == currentUser);
 
     if (message.toUser != chatWithID || message.fromUser != currentUser) {
@@ -171,7 +173,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 IconButton(
                   onPressed: () {
                     setState(() {
-                      messageToReply = messages[selectedMessageIndex];
+                      messageToReply = boxMessages.get(selectedMessageIndex);
                       selectedMessageIndex = -1;
                     });
                   },
@@ -186,7 +188,7 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: const EdgeInsets.all(8.0),
               reverse: false,
               itemBuilder: (_, int index) => _buildMessageItem(index),
-              itemCount: messages.length,
+              itemCount: boxMessages.length,
             ),
           ),
           if (messageToReply is Message) ...[

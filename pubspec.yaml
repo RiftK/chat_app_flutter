@@ -34,6 +34,8 @@ dependencies:
     sdk: flutter
   bubble: ^1.2.1
   flutter_bloc: ^8.1.1
+  hive:
+  hive_flutter:
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -47,6 +49,8 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   mocktail: ^0.3.0
+  hive_generator:
+  build_runner:
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
